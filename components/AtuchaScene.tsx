@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useEffect, useMemo } from "react"
+import { useRef, useEffect, useMemo, useCallback } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei"
 import { useAppStore } from "@/lib/store"
@@ -38,6 +38,18 @@ export default function AtuchaScene({ tourId }: AtuchaSceneProps) {
     }
   }, [quality])
 
+  const handleTourUpdate = useCallback(
+    (progress: number) => {
+      if (currentTour) {
+        const tourState = getTourAtProgress(currentTour, progress)
+        camera.position.lerp(tourState.position, 0.02)
+        camera.lookAt(tourState.target)
+        camera.updateMatrixWorld()
+      }
+    },
+    [currentTour, camera],
+  )
+
   useEffect(() => {
     if (tourId && currentTour) {
       isInTourRef.current = true
@@ -70,12 +82,7 @@ export default function AtuchaScene({ tourId }: AtuchaSceneProps) {
 
       if (Math.abs(progress - tourProgress) > 0.001) {
         setTourProgress(progress)
-
-        const tourState = getTourAtProgress(currentTour, progress)
-
-        camera.position.lerp(tourState.position, 0.02)
-        camera.lookAt(tourState.target)
-        camera.updateMatrixWorld()
+        handleTourUpdate(progress)
       }
     }
   })
