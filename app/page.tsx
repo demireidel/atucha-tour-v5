@@ -28,7 +28,7 @@ export default function HomePage() {
             alpha: false,
             powerPreference: "high-performance",
           }}
-          dpr={Math.min(window.devicePixelRatio, 2)}
+          dpr={typeof window !== "undefined" ? Math.min(window.devicePixelRatio, 2) : 1}
         >
           <Suspense fallback={null}>
             <AtuchaScene />

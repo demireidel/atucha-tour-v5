@@ -1,14 +1,13 @@
 "use client"
 
-import { useRef, useMemo } from "react"
+import { useRef, useMemo, useCallback } from "react"
 import { useFrame } from "@react-three/fiber"
 import { OrbitControls, Environment } from "@react-three/drei"
 import { useAppStore } from "@/lib/store"
 import type * as THREE from "three"
 
-function ReactorBuilding({ exploded }: { exploded: boolean }) {
+const ReactorBuilding = ({ exploded }: { exploded: boolean }) => {
   const groupRef = useRef<THREE.Group>(null)
-
   const position = useMemo(() => (exploded ? [0, 5, 0] : [0, 0, 0]), [exploded])
 
   return (
@@ -25,7 +24,7 @@ function ReactorBuilding({ exploded }: { exploded: boolean }) {
   )
 }
 
-function TurbineHall({ exploded }: { exploded: boolean }) {
+const TurbineHall = ({ exploded }: { exploded: boolean }) => {
   const position = useMemo(() => (exploded ? [40, 2, 0] : [30, 0, 0]), [exploded])
 
   return (
@@ -38,27 +37,31 @@ function TurbineHall({ exploded }: { exploded: boolean }) {
   )
 }
 
-function Terrain() {
-  return (
-    <group>
-      <mesh receiveShadow position={[0, -1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[200, 200]} />
-        <meshStandardMaterial color="#4a5d23" />
-      </mesh>
-    </group>
-  )
-}
+const Terrain = () => (
+  <group>
+    <mesh receiveShadow position={[0, -1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[200, 200]} />
+      <meshStandardMaterial color="#4a5d23" />
+    </mesh>
+  </group>
+)
 
 export default function AtuchaScene() {
   const { exploded, annotations } = useAppStore()
   const lightRef = useRef<THREE.DirectionalLight>(null)
 
-  useFrame((state) => {
-    if (lightRef.current) {
-      const time = state.clock.elapsedTime * 0.1
-      lightRef.current.position.set(Math.cos(time) * 50, 30, Math.sin(time) * 50)
+  const updateLight = useCallback((state: any) => {
+    try {
+      if (lightRef.current) {
+        const time = state.clock.elapsedTime * 0.1
+        lightRef.current.position.set(Math.cos(time) * 50, 30, Math.sin(time) * 50)
+      }
+    } catch (error) {
+      console.error("[v0] Light update error:", error)
     }
-  })
+  }, [])
+
+  useFrame(updateLight)
 
   return (
     <>
