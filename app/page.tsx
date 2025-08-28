@@ -18,6 +18,10 @@ const AtuchaScene = dynamic(() => import("@/components/AtuchaScene"), {
   ),
 })
 
+const UiOverlay = dynamic(() => import("@/components/UiOverlay"), {
+  ssr: false,
+})
+
 const TOURS = [
   {
     id: "reactor-core" as const,
@@ -92,6 +96,12 @@ const TourView = memo(function TourView() {
           <AtuchaScene tourId={currentTour} />
         </Suspense>
       </Canvas>
+
+      <div className="absolute inset-0 pointer-events-none z-10">
+        <div className="pointer-events-auto">
+          <UiOverlay />
+        </div>
+      </div>
 
       <div className="absolute top-4 left-4 z-10">
         <Button onClick={handleExitTour} variant="secondary" className="gap-2">
