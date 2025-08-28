@@ -81,20 +81,40 @@ export function CinematicPanel({ open, onOpenChange }: CinematicPanelProps) {
   }, [currentShot, setCurrentShot, setShotProgress, setIsPlaying])
 
   const startWebMRecording = useCallback(async () => {
-    const canvas = document.querySelector("canvas")
-    if (!canvas) {
-      toast({
-        title: "Recording error",
-        description: "Canvas not found",
-        variant: "destructive",
-      })
-      return
-    }
-
     try {
+      const canvas = document.querySelector("canvas")
+      if (!canvas) {
+        toast({
+          title: "Recording error",
+          description: "Canvas not found",
+          variant: "destructive",
+        })
+        return
+      }
+
+      if (typeof canvas.captureStream !== "function") {
+        toast({
+          title: "Recording not supported",
+          description: "Your browser doesn't support canvas recording",
+          variant: "destructive",
+        })
+        return
+      }
+
+      if (typeof MediaRecorder === "undefined") {
+        toast({
+          title: "Recording not supported",
+          description: "MediaRecorder API not available",
+          variant: "destructive",
+        })
+        return
+      }
+
       const stream = canvas.captureStream(currentShotData.fps)
+      const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9") ? "video/webm;codecs=vp9" : "video/webm"
+
       const recorder = new MediaRecorder(stream, {
-        mimeType: "video/webm;codecs=vp9",
+        mimeType,
         videoBitsPerSecond: 5000000,
       })
 
@@ -106,17 +126,37 @@ export function CinematicPanel({ open, onOpenChange }: CinematicPanelProps) {
       }
 
       recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: "video/webm" })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `atucha-${currentShotData.id}-${Date.now()}.webm`
-        a.click()
-        URL.revokeObjectURL(url)
+        try {
+          const blob = new Blob(chunks, { type: mimeType })
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement("a")
+          a.href = url
+          a.download = `atucha-${currentShotData.id}-${Date.now()}.webm`
+          a.click()
+          URL.revokeObjectURL(url)
+          toast({
+            title: "Recording saved!",
+            description: "WebM recording has been downloaded",
+          })
+        } catch (error) {
+          console.error("[v0] Recording save failed:", error)
+          toast({
+            title: "Save failed",
+            description: "Could not save recording",
+            variant: "destructive",
+          })
+        }
+      }
+
+      recorder.onerror = (event) => {
+        console.error("[v0] Recording error:", event)
         toast({
-          title: "Recording saved!",
-          description: "WebM recording has been downloaded",
+          title: "Recording error",
+          description: "Recording failed unexpectedly",
+          variant: "destructive",
         })
+        setIsRecording(false)
+        setRecordingType(null)
       }
 
       recorder.start()
@@ -128,21 +168,27 @@ export function CinematicPanel({ open, onOpenChange }: CinematicPanelProps) {
         description: "WebM recording in progress",
       })
     } catch (error) {
+      console.error("[v0] Recording setup failed:", error)
       toast({
         title: "Recording error",
-        description: "WebM recording not supported",
+        description: "Failed to start recording",
         variant: "destructive",
       })
     }
   }, [currentShotData, setIsRecording, setRecordingType, toast])
 
   const stopRecording = useCallback(() => {
-    if (mediaRecorder && mediaRecorder.state === "recording") {
-      mediaRecorder.stop()
+    try {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop()
+      }
+    } catch (error) {
+      console.error("[v0] Stop recording failed:", error)
+    } finally {
       setMediaRecorder(null)
+      setIsRecording(false)
+      setRecordingType(null)
     }
-    setIsRecording(false)
-    setRecordingType(null)
   }, [mediaRecorder, setIsRecording, setRecordingType])
 
   const startPNGSequence = useCallback(() => {
@@ -155,7 +201,6 @@ export function CinematicPanel({ open, onOpenChange }: CinematicPanelProps) {
     // PNG sequence implementation would capture frame-by-frame
   }, [setIsRecording, setRecordingType, toast])
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!open) return
@@ -191,6 +236,18 @@ export function CinematicPanel({ open, onOpenChange }: CinematicPanelProps) {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [open, handlePlay, handlePreviousShot, handleNextShot, startWebMRecording, startPNGSequence])
+
+  useEffect(() => {
+    return () => {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        try {
+          mediaRecorder.stop()
+        } catch (error) {
+          console.error("[v0] Cleanup recording failed:", error)
+        }
+      }
+    }
+  }, [mediaRecorder])
 
   if (!open) return null
 

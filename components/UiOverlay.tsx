@@ -41,8 +41,17 @@ export default function UiOverlay() {
   const { toast } = useToast()
 
   const handleScreenshot = useCallback(() => {
-    const canvas = document.querySelector("canvas")
-    if (canvas) {
+    try {
+      const canvas = document.querySelector("canvas")
+      if (!canvas) {
+        toast({
+          title: "Screenshot failed",
+          description: "Canvas element not found",
+          variant: "destructive",
+        })
+        return
+      }
+
       const link = document.createElement("a")
       link.download = `atucha-ii-${Date.now()}.png`
       link.href = canvas.toDataURL()
@@ -50,6 +59,13 @@ export default function UiOverlay() {
       toast({
         title: "Screenshot saved!",
         description: "Your screenshot has been downloaded successfully.",
+      })
+    } catch (error) {
+      console.error("[v0] Screenshot failed:", error)
+      toast({
+        title: "Screenshot failed",
+        description: "Unable to capture screenshot",
+        variant: "destructive",
       })
     }
   }, [toast])

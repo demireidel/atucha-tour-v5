@@ -22,6 +22,7 @@ export default function AtuchaScene({ tourId }: AtuchaSceneProps) {
   const controlsRef = useRef<any>(null)
   const tourStartTimeRef = useRef<number>(0)
   const isInTourRef = useRef<boolean>(false)
+  const lastUpdateTimeRef = useRef<number>(0)
 
   const currentTour = useMemo(() => (tourId ? TOURS.find((t) => t.id === tourId) : null), [tourId])
 
@@ -42,7 +43,7 @@ export default function AtuchaScene({ tourId }: AtuchaSceneProps) {
     (progress: number) => {
       if (currentTour) {
         const tourState = getTourAtProgress(currentTour, progress)
-        camera.position.lerp(tourState.position, 0.02)
+        camera.position.lerp(tourState.position, 0.03)
         camera.lookAt(tourState.target)
         camera.updateMatrixWorld()
       }
@@ -66,9 +67,17 @@ export default function AtuchaScene({ tourId }: AtuchaSceneProps) {
         controlsRef.current.enabled = true
       }
     }
+
+    return () => {
+      isInTourRef.current = false
+    }
   }, [tourId, currentTour, setTourProgress])
 
-  useFrame(() => {
+  useFrame((state, delta) => {
+    const now = state.clock.elapsedTime
+    if (now - lastUpdateTimeRef.current < 1 / 60) return
+    lastUpdateTimeRef.current = now
+
     if (lightRef.current) {
       const angle = sunPosition * Math.PI * 2 - Math.PI / 2
       const x = Math.cos(angle) * 100
@@ -80,7 +89,7 @@ export default function AtuchaScene({ tourId }: AtuchaSceneProps) {
       const elapsed = (Date.now() - tourStartTimeRef.current) / 1000
       const progress = Math.min(elapsed / currentTour.totalDuration, 1)
 
-      if (Math.abs(progress - tourProgress) > 0.001) {
+      if (Math.abs(progress - tourProgress) > 0.005) {
         setTourProgress(progress)
         handleTourUpdate(progress)
       }

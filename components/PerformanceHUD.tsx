@@ -19,14 +19,19 @@ export function PerformanceHUD({ open, onOpenChange }: PerformanceHUDProps) {
   useEffect(() => {
     const unsubscribe = monitor.onFpsUpdate(setFps)
 
-    // Memory monitoring
     const updateMemory = () => {
-      if ("memory" in performance) {
-        const mem = (performance as any).memory
-        setMemory({
-          used: Math.round(mem.usedJSHeapSize / 1024 / 1024),
-          total: Math.round(mem.totalJSHeapSize / 1024 / 1024),
-        })
+      try {
+        if (typeof performance !== "undefined" && "memory" in performance) {
+          const mem = (performance as any).memory
+          if (mem && typeof mem.usedJSHeapSize === "number") {
+            setMemory({
+              used: Math.round(mem.usedJSHeapSize / 1024 / 1024),
+              total: Math.round(mem.totalJSHeapSize / 1024 / 1024),
+            })
+          }
+        }
+      } catch (error) {
+        console.warn("[v0] Memory monitoring not available:", error)
       }
     }
 
@@ -35,7 +40,9 @@ export function PerformanceHUD({ open, onOpenChange }: PerformanceHUDProps) {
 
     return () => {
       unsubscribe()
-      clearInterval(memoryInterval)
+      if (memoryInterval) {
+        clearInterval(memoryInterval)
+      }
     }
   }, [monitor])
 
@@ -89,7 +96,7 @@ export function PerformanceHUD({ open, onOpenChange }: PerformanceHUDProps) {
               <Cpu className="h-3 w-3" />
               <span>Cores</span>
             </div>
-            <span>{navigator.hardwareConcurrency || "Unknown"}</span>
+            <span>{typeof navigator !== "undefined" ? navigator.hardwareConcurrency || "Unknown" : "Unknown"}</span>
           </div>
 
           {/* Device Memory */}
@@ -98,7 +105,7 @@ export function PerformanceHUD({ open, onOpenChange }: PerformanceHUDProps) {
               <HardDrive className="h-3 w-3" />
               <span>Device RAM</span>
             </div>
-            <span>{(navigator as any).deviceMemory || "Unknown"}GB</span>
+            <span>{typeof navigator !== "undefined" ? (navigator as any).deviceMemory || "Unknown" : "Unknown"}GB</span>
           </div>
 
           {/* Warmup Status */}
