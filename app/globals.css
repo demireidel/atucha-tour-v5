@@ -122,11 +122,8 @@
   body {
     margin: 0;
     padding: 0;
-    background: var(--color-bg);
-    color: var(--color-text);
-    font-family: var(--font-sans);
     overflow: hidden;
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
   }
 }
 
@@ -134,6 +131,7 @@
   position: fixed;
   inset: 0;
   z-index: 1;
+  will-change: transform;
 }
 
 .ui-overlay {
@@ -145,7 +143,5 @@
 
 .ui-panel {
   pointer-events: auto;
-  background: var(--color-panel);
-  border-radius: 8px;
-  backdrop-filter: blur(8px);
+  @apply bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg;
 }

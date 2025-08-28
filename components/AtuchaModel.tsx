@@ -443,3 +443,23 @@ export function AuxiliaryBlocks({ exploded = false }: AuxiliaryBlocksProps) {
     </group>
   )
 }
+
+interface AtuchaModelProps {
+  exploded?: boolean
+  wireframe?: boolean
+  quality?: {
+    shadowMapSize: number
+    segments: number
+    detail: number
+  }
+}
+
+export function AtuchaModel({ exploded = false, wireframe = false, quality }: AtuchaModelProps) {
+  return (
+    <group>
+      <ReactorBuilding exploded={exploded} />
+      <TurbineHall exploded={exploded} />
+      <AuxiliaryBlocks exploded={exploded} />
+    </group>
+  )
+}
