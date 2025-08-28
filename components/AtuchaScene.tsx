@@ -1,98 +1,62 @@
 "use client"
 
-import { useRef, useEffect, useMemo, useCallback } from "react"
-import { useFrame, useThree } from "@react-three/fiber"
-import { OrbitControls, Environment, ContactShadows } from "@react-three/drei"
+import { useRef, useMemo } from "react"
+import { useFrame } from "@react-three/fiber"
+import { OrbitControls, Environment } from "@react-three/drei"
 import { useAppStore } from "@/lib/store"
-import { ReactorBuilding, TurbineHall, AuxiliaryBlocks } from "./AtuchaModel"
-import { Switchyard } from "./Switchyard"
-import { WaterAndTerrain } from "./WaterAndTerrain"
-import { TOURS, getTourAtProgress } from "@/lib/tours"
 import type * as THREE from "three"
 
-interface AtuchaSceneProps {
-  tourId?: string | null
+function ReactorBuilding({ exploded }: { exploded: boolean }) {
+  const groupRef = useRef<THREE.Group>(null)
+
+  const position = useMemo(() => (exploded ? [0, 5, 0] : [0, 0, 0]), [exploded])
+
+  return (
+    <group ref={groupRef} position={position}>
+      <mesh castShadow receiveShadow>
+        <cylinderGeometry args={[15, 15, 30, 16]} />
+        <meshStandardMaterial color="#c0c0c0" metalness={0.3} roughness={0.7} />
+      </mesh>
+      <mesh position={[0, 15, 0]} castShadow>
+        <sphereGeometry args={[15, 16, 8]} />
+        <meshStandardMaterial color="#a0a0a0" metalness={0.4} roughness={0.6} />
+      </mesh>
+    </group>
+  )
 }
 
-export default function AtuchaScene({ tourId }: AtuchaSceneProps) {
-  const { camera } = useThree()
-  const { layers, sunPosition, environmentPreset, quality, exploded, tourProgress, setTourProgress } = useAppStore()
+function TurbineHall({ exploded }: { exploded: boolean }) {
+  const position = useMemo(() => (exploded ? [40, 2, 0] : [30, 0, 0]), [exploded])
 
-  const lightRef = useRef<THREE.DirectionalLight>(null)
-  const controlsRef = useRef<any>(null)
-  const tourStartTimeRef = useRef<number>(0)
-  const isInTourRef = useRef<boolean>(false)
-  const lastUpdateTimeRef = useRef<number>(0)
-
-  const currentTour = useMemo(() => (tourId ? TOURS.find((t) => t.id === tourId) : null), [tourId])
-
-  const shadowMapSize = useMemo(() => {
-    switch (quality) {
-      case "high":
-        return 2048
-      case "medium":
-        return 1024
-      case "low":
-        return 512
-      default:
-        return 1024
-    }
-  }, [quality])
-
-  const handleTourUpdate = useCallback(
-    (progress: number) => {
-      if (currentTour) {
-        const tourState = getTourAtProgress(currentTour, progress)
-        camera.position.lerp(tourState.position, 0.03)
-        camera.lookAt(tourState.target)
-        camera.updateMatrixWorld()
-      }
-    },
-    [currentTour, camera],
+  return (
+    <group position={position}>
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[40, 15, 20]} />
+        <meshStandardMaterial color="#8a8a8a" metalness={0.2} roughness={0.8} />
+      </mesh>
+    </group>
   )
+}
 
-  useEffect(() => {
-    if (tourId && currentTour) {
-      isInTourRef.current = true
-      tourStartTimeRef.current = Date.now()
-      setTourProgress(0)
+function Terrain() {
+  return (
+    <group>
+      <mesh receiveShadow position={[0, -1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[200, 200]} />
+        <meshStandardMaterial color="#4a5d23" />
+      </mesh>
+    </group>
+  )
+}
 
-      if (controlsRef.current) {
-        controlsRef.current.enabled = false
-      }
-    } else {
-      isInTourRef.current = false
+export default function AtuchaScene() {
+  const { exploded, annotations } = useAppStore()
+  const lightRef = useRef<THREE.DirectionalLight>(null)
 
-      if (controlsRef.current) {
-        controlsRef.current.enabled = true
-      }
-    }
-
-    return () => {
-      isInTourRef.current = false
-    }
-  }, [tourId, currentTour, setTourProgress])
-
-  useFrame((state, delta) => {
-    const now = state.clock.elapsedTime
-    if (now - lastUpdateTimeRef.current < 1 / 60) return
-    lastUpdateTimeRef.current = now
-
+  useFrame((state) => {
     if (lightRef.current) {
-      const angle = sunPosition * Math.PI * 2 - Math.PI / 2
-      const x = Math.cos(angle) * 100
-      const y = Math.sin(angle) * 50 + 20
-      lightRef.current.position.set(x, y, 0)
-    }
-
-    if (isInTourRef.current && currentTour) {
-      const elapsed = (Date.now() - tourStartTimeRef.current) / 1000
-      const progress = Math.min(elapsed / currentTour.totalDuration, 1)
-
-      if (Math.abs(progress - tourProgress) > 0.005) {
-        setTourProgress(progress)
-        handleTourUpdate(progress)
-      }
+      const time = state.clock.elapsedTime * 0.1
+      lightRef.current.position.set(Math.cos(time) * 50, 30, Math.sin(time) * 50)
     }
   })
 
@@ -101,42 +65,40 @@ export default function AtuchaScene({ tourId }: AtuchaSceneProps) {
       <ambientLight intensity={0.4} />
       <directionalLight
         ref={lightRef}
-        intensity={1.2}
-        castShadow={quality !== "low"}
-        shadow-mapSize-width={shadowMapSize}
-        shadow-mapSize-height={shadowMapSize}
-        shadow-camera-far={200}
-        shadow-camera-left={-100}
-        shadow-camera-right={100}
-        shadow-camera-top={100}
-        shadow-camera-bottom={-100}
-        shadow-bias={-0.0001}
+        intensity={1}
+        castShadow
+        shadow-mapSize={[1024, 1024]}
+        shadow-camera-far={100}
+        shadow-camera-left={-50}
+        shadow-camera-right={50}
+        shadow-camera-top={50}
+        shadow-camera-bottom={-50}
       />
 
-      <Environment preset={environmentPreset} />
+      <Environment preset="city" />
 
-      {!tourId && (
-        <OrbitControls
-          ref={controlsRef}
-          enablePan={true}
-          enableZoom={true}
-          enableRotate={true}
-          minDistance={20}
-          maxDistance={200}
-          maxPolarAngle={Math.PI / 2.2}
-          enableDamping={true}
-          dampingFactor={0.05}
-        />
-      )}
+      <OrbitControls
+        enablePan={true}
+        enableZoom={true}
+        enableRotate={true}
+        minDistance={20}
+        maxDistance={150}
+        maxPolarAngle={Math.PI / 2.2}
+        enableDamping
+        dampingFactor={0.05}
+      />
 
-      {layers.terrain && <WaterAndTerrain exploded={exploded} />}
-      {layers.reactor && <ReactorBuilding exploded={exploded} />}
-      {layers.turbineHall && <TurbineHall exploded={exploded} />}
-      {layers.auxiliary && <AuxiliaryBlocks exploded={exploded} />}
-      {layers.switchyard && <Switchyard exploded={exploded} />}
+      <Terrain />
+      <ReactorBuilding exploded={exploded} />
+      <TurbineHall exploded={exploded} />
 
-      {quality !== "low" && (
-        <ContactShadows position={[0, -0.9, 0]} opacity={0.4} scale={100} blur={quality === "high" ? 2 : 1} far={50} />
+      {annotations && (
+        <group>
+          <mesh position={[0, 35, 0]}>
+            <sphereGeometry args={[0.5]} />
+            <meshBasicMaterial color="#ff4444" />
+          </mesh>
+        </group>
       )}
     </>
   )

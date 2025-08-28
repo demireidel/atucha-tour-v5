@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { useAppStore } from "@/lib/store"
 import { cinematicShots, progressToTimecode } from "@/lib/cinematics"
 import { Play, Pause, Square, RotateCcw, Repeat, Camera, Video, X } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 interface CinematicPanelProps {
   open: boolean
@@ -39,19 +39,15 @@ export function CinematicPanel({ open, onOpenChange }: CinematicPanelProps) {
   } = useAppStore()
 
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
-  const { toast } = useToast()
 
   const currentShotData = cinematicShots[currentShot]
 
   const handlePlay = useCallback(() => {
     setIsPlaying(!isPlaying)
     if (!isPlaying) {
-      toast({
-        title: "Playback started",
-        description: `Playing: ${currentShotData.name}`,
-      })
+      toast.info(`Playing: ${currentShotData.name}`)
     }
-  }, [isPlaying, setIsPlaying, currentShotData.name, toast])
+  }, [isPlaying, setIsPlaying, currentShotData.name])
 
   const handleStop = useCallback(() => {
     setIsPlaying(false)
@@ -60,11 +56,8 @@ export function CinematicPanel({ open, onOpenChange }: CinematicPanelProps) {
 
   const handleReset = useCallback(() => {
     setShotProgress(0)
-    toast({
-      title: "Camera reset",
-      description: "Camera reset to start position",
-    })
-  }, [setShotProgress, toast])
+    toast.info("Camera reset to start position")
+  }, [setShotProgress])
 
   const handlePreviousShot = useCallback(() => {
     const prevShot = currentShot > 0 ? currentShot - 1 : cinematicShots.length - 1
@@ -81,40 +74,16 @@ export function CinematicPanel({ open, onOpenChange }: CinematicPanelProps) {
   }, [currentShot, setCurrentShot, setShotProgress, setIsPlaying])
 
   const startWebMRecording = useCallback(async () => {
+    const canvas = document.querySelector("canvas")
+    if (!canvas) {
+      toast.error("Canvas not found")
+      return
+    }
+
     try {
-      const canvas = document.querySelector("canvas")
-      if (!canvas) {
-        toast({
-          title: "Recording error",
-          description: "Canvas not found",
-          variant: "destructive",
-        })
-        return
-      }
-
-      if (typeof canvas.captureStream !== "function") {
-        toast({
-          title: "Recording not supported",
-          description: "Your browser doesn't support canvas recording",
-          variant: "destructive",
-        })
-        return
-      }
-
-      if (typeof MediaRecorder === "undefined") {
-        toast({
-          title: "Recording not supported",
-          description: "MediaRecorder API not available",
-          variant: "destructive",
-        })
-        return
-      }
-
       const stream = canvas.captureStream(currentShotData.fps)
-      const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9") ? "video/webm;codecs=vp9" : "video/webm"
-
       const recorder = new MediaRecorder(stream, {
-        mimeType,
+        mimeType: "video/webm;codecs=vp9",
         videoBitsPerSecond: 5000000,
       })
 
@@ -126,81 +95,43 @@ export function CinematicPanel({ open, onOpenChange }: CinematicPanelProps) {
       }
 
       recorder.onstop = () => {
-        try {
-          const blob = new Blob(chunks, { type: mimeType })
-          const url = URL.createObjectURL(blob)
-          const a = document.createElement("a")
-          a.href = url
-          a.download = `atucha-${currentShotData.id}-${Date.now()}.webm`
-          a.click()
-          URL.revokeObjectURL(url)
-          toast({
-            title: "Recording saved!",
-            description: "WebM recording has been downloaded",
-          })
-        } catch (error) {
-          console.error("[v0] Recording save failed:", error)
-          toast({
-            title: "Save failed",
-            description: "Could not save recording",
-            variant: "destructive",
-          })
-        }
-      }
-
-      recorder.onerror = (event) => {
-        console.error("[v0] Recording error:", event)
-        toast({
-          title: "Recording error",
-          description: "Recording failed unexpectedly",
-          variant: "destructive",
-        })
-        setIsRecording(false)
-        setRecordingType(null)
+        const blob = new Blob(chunks, { type: "video/webm" })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `atucha-${currentShotData.id}-${Date.now()}.webm`
+        a.click()
+        URL.revokeObjectURL(url)
+        toast.success("WebM recording saved!")
       }
 
       recorder.start()
       setMediaRecorder(recorder)
       setIsRecording(true)
       setRecordingType("webm")
-      toast({
-        title: "Recording started",
-        description: "WebM recording in progress",
-      })
+      toast.info("WebM recording started")
     } catch (error) {
-      console.error("[v0] Recording setup failed:", error)
-      toast({
-        title: "Recording error",
-        description: "Failed to start recording",
-        variant: "destructive",
-      })
+      toast.error("WebM recording not supported")
     }
-  }, [currentShotData, setIsRecording, setRecordingType, toast])
+  }, [currentShotData, setIsRecording, setRecordingType])
 
   const stopRecording = useCallback(() => {
-    try {
-      if (mediaRecorder && mediaRecorder.state === "recording") {
-        mediaRecorder.stop()
-      }
-    } catch (error) {
-      console.error("[v0] Stop recording failed:", error)
-    } finally {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      mediaRecorder.stop()
       setMediaRecorder(null)
-      setIsRecording(false)
-      setRecordingType(null)
     }
+    setIsRecording(false)
+    setRecordingType(null)
   }, [mediaRecorder, setIsRecording, setRecordingType])
 
   const startPNGSequence = useCallback(() => {
     setIsRecording(true)
     setRecordingType("png")
-    toast({
-      title: "PNG sequence started",
-      description: "Frame-by-frame capture in progress",
-    })
+    toast.info("PNG sequence recording started")
     // PNG sequence implementation would capture frame-by-frame
-  }, [setIsRecording, setRecordingType, toast])
+  }, [setIsRecording, setRecordingType])
 
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!open) return
@@ -236,18 +167,6 @@ export function CinematicPanel({ open, onOpenChange }: CinematicPanelProps) {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [open, handlePlay, handlePreviousShot, handleNextShot, startWebMRecording, startPNGSequence])
-
-  useEffect(() => {
-    return () => {
-      if (mediaRecorder && mediaRecorder.state === "recording") {
-        try {
-          mediaRecorder.stop()
-        } catch (error) {
-          console.error("[v0] Cleanup recording failed:", error)
-        }
-      }
-    }
-  }, [mediaRecorder])
 
   if (!open) return null
 

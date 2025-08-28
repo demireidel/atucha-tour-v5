@@ -2,6 +2,7 @@
 
 import { useRef, useMemo } from "react"
 import { useFrame } from "@react-three/fiber"
+import { useControls } from "leva"
 import * as THREE from "three"
 
 interface WaterAndTerrainProps {
@@ -10,12 +11,13 @@ interface WaterAndTerrainProps {
 
 export function WaterAndTerrain({ exploded = false }: WaterAndTerrainProps) {
   const waterRef = useRef<THREE.Mesh>(null)
-
-  const siteScale = 1
-  const riverWidth = 50
-  const flowSpeed = 0.5
-  const waveHeight = 0.2
-  const terrainDetail = 20
+  const { siteScale, riverWidth, flowSpeed, waveHeight, terrainDetail } = useControls("Water & Terrain", {
+    siteScale: { value: 1, min: 0.5, max: 2, step: 0.1 },
+    riverWidth: { value: 50, min: 20, max: 100, step: 5 },
+    flowSpeed: { value: 0.5, min: 0, max: 2, step: 0.1 },
+    waveHeight: { value: 0.2, min: 0, max: 1, step: 0.1 },
+    terrainDetail: { value: 20, min: 10, max: 50, step: 5 },
+  })
 
   const explodeOffset = exploded ? [0, -5, 0] : [0, 0, 0]
 
@@ -32,13 +34,16 @@ export function WaterAndTerrain({ exploded = false }: WaterAndTerrainProps) {
   const terrainGeometry = useMemo(() => {
     const geometry = new THREE.PlaneGeometry(300 * siteScale, 300 * siteScale, terrainDetail, terrainDetail)
 
-    const vertices = geometry.attributes.position.array as Float32Array
+    const positionAttribute = geometry.attributes.position
+    const vertices = positionAttribute.array as Float32Array
     for (let i = 0; i < vertices.length; i += 3) {
-      // Add subtle height variation
-      vertices[i + 2] = Math.sin(vertices[i] * 0.01) * Math.cos(vertices[i + 1] * 0.01) * 2
+      const x = vertices[i]
+      const y = vertices[i + 1]
+      // Add subtle height variation - ensure we're working with primitive numbers
+      vertices[i + 2] = Math.sin(x * 0.01) * Math.cos(y * 0.01) * 2
     }
 
-    geometry.attributes.position.needsUpdate = true
+    positionAttribute.needsUpdate = true
     geometry.computeVertexNormals()
     return geometry
   }, [siteScale, terrainDetail])

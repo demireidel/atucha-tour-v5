@@ -14,12 +14,12 @@ interface MeasureToolProps {
 export function MeasureTool({ onClose }: MeasureToolProps) {
   const [measurements, setMeasurements] = useState<
     Array<{
-      start: THREE.Vector3
-      end: THREE.Vector3
+      start: [number, number, number]
+      end: [number, number, number]
       distance: number
     }>
   >([])
-  const [currentStart, setCurrentStart] = useState<THREE.Vector3 | null>(null)
+  const [currentStart, setCurrentStart] = useState<[number, number, number] | null>(null)
   const { camera, raycaster, scene } = useThree()
 
   const handleClick = (event: MouseEvent) => {
@@ -34,14 +34,15 @@ export function MeasureTool({ onClose }: MeasureToolProps) {
       const point = intersects[0].point
 
       if (!currentStart) {
-        setCurrentStart(point.clone())
+        setCurrentStart([point.x, point.y, point.z])
       } else {
-        const distance = currentStart.distanceTo(point)
+        const startVec = new THREE.Vector3(currentStart[0], currentStart[1], currentStart[2])
+        const distance = startVec.distanceTo(point)
         setMeasurements((prev) => [
           ...prev,
           {
             start: currentStart,
-            end: point.clone(),
+            end: [point.x, point.y, point.z],
             distance,
           },
         ])

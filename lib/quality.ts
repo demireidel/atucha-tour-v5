@@ -8,38 +8,32 @@ export interface QualitySettings {
   antialias: boolean
 }
 
-export function getQualityPresets(): Record<string, QualitySettings> {
-  const devicePixelRatio = typeof window !== "undefined" ? window.devicePixelRatio : 1
-
-  return {
-    low: {
-      dpr: 1,
-      shadowMapSize: 512,
-      postProcessing: false,
-      shadows: false,
-      frameloop: "demand",
-      antialias: false,
-    },
-    medium: {
-      dpr: Math.min(devicePixelRatio, 2),
-      shadowMapSize: 1024,
-      postProcessing: true,
-      shadows: true,
-      frameloop: "always",
-      antialias: true,
-    },
-    high: {
-      dpr: Math.min(devicePixelRatio, 2),
-      shadowMapSize: 2048,
-      postProcessing: true,
-      shadows: true,
-      frameloop: "always",
-      antialias: true,
-    },
-  }
+export const QUALITY_PRESETS: Record<string, QualitySettings> = {
+  low: {
+    dpr: 1,
+    shadowMapSize: 512,
+    postProcessing: false,
+    shadows: false,
+    frameloop: "demand",
+    antialias: false,
+  },
+  medium: {
+    dpr: Math.min(window.devicePixelRatio, 2),
+    shadowMapSize: 1024,
+    postProcessing: true,
+    shadows: true,
+    frameloop: "always",
+    antialias: true,
+  },
+  high: {
+    dpr: Math.min(window.devicePixelRatio, 2),
+    shadowMapSize: 2048,
+    postProcessing: true,
+    shadows: true,
+    frameloop: "always",
+    antialias: true,
+  },
 }
-
-export const QUALITY_PRESETS = getQualityPresets()
 
 export interface DeviceCapabilities {
   memory: number

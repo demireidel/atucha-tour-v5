@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { useControls } from "leva"
 import * as THREE from "three"
 
 interface SwitchyardProps {
@@ -8,11 +9,13 @@ interface SwitchyardProps {
 }
 
 export function Switchyard({ exploded = false }: SwitchyardProps) {
-  const yardWidth = 60
-  const yardDepth = 40
-  const transformerCount = 8
-  const pylonCount = 12
-  const fenceHeight = 3
+  const { yardWidth, yardDepth, transformerCount, pylonCount, fenceHeight } = useControls("Switchyard", {
+    yardWidth: { value: 60, min: 40, max: 100, step: 5 },
+    yardDepth: { value: 40, min: 20, max: 60, step: 5 },
+    transformerCount: { value: 8, min: 4, max: 16, step: 1 },
+    pylonCount: { value: 12, min: 6, max: 20, step: 1 },
+    fenceHeight: { value: 3, min: 2, max: 5, step: 0.5 },
+  })
 
   const explodeOffset = exploded ? [0, 0, -20] : [0, 0, 0]
 
@@ -65,18 +68,18 @@ export function Switchyard({ exploded = false }: SwitchyardProps) {
     ]
 
     perimeter.forEach((section, index) => {
-      const length = new THREE.Vector3()
-        .subVectors(new THREE.Vector3(...section.end), new THREE.Vector3(...section.start))
-        .length()
+      const startVec = new THREE.Vector3(section.start[0], section.start[1], section.start[2])
+      const endVec = new THREE.Vector3(section.end[0], section.end[1], section.end[2])
 
-      const center = new THREE.Vector3()
-        .addVectors(new THREE.Vector3(...section.start), new THREE.Vector3(...section.end))
-        .multiplyScalar(0.5)
+      const length = startVec.distanceTo(endVec)
+      const centerX = (section.start[0] + section.end[0]) * 0.5
+      const centerY = (section.start[1] + section.end[1]) * 0.5
+      const centerZ = (section.start[2] + section.end[2]) * 0.5
 
       const angle = Math.atan2(section.end[2] - section.start[2], section.end[0] - section.start[0])
 
       sections.push({
-        position: [center.x, fenceHeight / 2, center.z],
+        position: [centerX, fenceHeight / 2, centerZ],
         scale: [length, fenceHeight, 0.1],
         rotation: [0, angle, 0],
       })

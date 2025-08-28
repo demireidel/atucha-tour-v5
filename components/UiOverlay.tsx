@@ -1,223 +1,62 @@
 "use client"
 
-import { useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useAppStore } from "@/lib/store"
-import { Camera, Settings, Info, Layers, Sun, Play, Headphones, HelpCircle, Activity } from "lucide-react"
+import { Info, Layers, Camera } from "lucide-react"
 import { AboutModal } from "./AboutModal"
-import { LayerDrawer } from "./LayerDrawer"
-import { QualityPanel } from "./QualityPanel"
-import { SunControls } from "./SunControls"
-import { Minimap } from "./Minimap"
-import { HelpOverlay } from "./HelpOverlay"
-import { MeasureTool } from "./MeasureTool"
-import { SectionClipping } from "./SectionClipping"
-import { Toaster } from "@/components/ui/toaster"
-import { useToast } from "@/hooks/use-toast"
-import { CinematicPanel } from "./CinematicPanel"
-import { Overlays } from "./Overlays"
 
 export default function UiOverlay() {
-  const {
-    setAboutModalOpen,
-    aboutModalOpen,
-    setRightDrawerOpen,
-    rightDrawerOpen,
-    cinematicMode,
-    setCinematicMode,
-    helpOverlayOpen,
-    setHelpOverlayOpen,
-    minimap,
-    performanceHUD,
-    setPerformanceHUD,
-  } = useAppStore()
+  const { setAboutModalOpen, aboutModalOpen, exploded, setExploded, annotations, setAnnotations } = useAppStore()
 
-  const [qualityPanelOpen, setQualityPanelOpen] = useState(false)
-  const [sunControlsOpen, setSunControlsOpen] = useState(false)
-  const [measureToolActive, setMeasureToolActive] = useState(false)
-  const [clippingActive, setClippingActive] = useState(false)
-
-  const { toast } = useToast()
-
-  const handleScreenshot = useCallback(() => {
-    try {
-      const canvas = document.querySelector("canvas")
-      if (!canvas) {
-        toast({
-          title: "Screenshot failed",
-          description: "Canvas element not found",
-          variant: "destructive",
-        })
-        return
-      }
-
+  const handleScreenshot = () => {
+    const canvas = document.querySelector("canvas")
+    if (canvas) {
       const link = document.createElement("a")
       link.download = `atucha-ii-${Date.now()}.png`
       link.href = canvas.toDataURL()
       link.click()
-      toast({
-        title: "Screenshot saved!",
-        description: "Your screenshot has been downloaded successfully.",
-      })
-    } catch (error) {
-      console.error("[v0] Screenshot failed:", error)
-      toast({
-        title: "Screenshot failed",
-        description: "Unable to capture screenshot",
-        variant: "destructive",
-      })
     }
-  }, [toast])
-
-  const handleTour = useCallback(() => {
-    toast({
-      title: "Camera tour starting...",
-      description: "Enjoy the cinematic tour of the Atucha II facility.",
-    })
-    // Tour implementation will be added in cinematic mode
-  }, [toast])
+  }
 
   return (
-    <>
-      {/* Top Bar */}
-      <div className="absolute top-0 left-0 right-0 z-50 p-4">
-        <Card className="bg-custom-panel/90 backdrop-blur-sm border-border/50">
+    <div className="ui-overlay">
+      <div className="absolute top-4 left-4 right-4 z-50">
+        <Card className="ui-panel">
           <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-4">
-              <h1 className="font-display font-bold text-xl text-brand">Atucha II — Exterior Visualization</h1>
-            </div>
+            <h1 className="font-bold text-xl" style={{ color: "var(--color-brand)" }}>
+              Atucha II Nuclear Plant
+            </h1>
 
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setAboutModalOpen(true)}
-                title="About this visualization"
-              >
-                <Info className="h-4 w-4 mr-2" />
-                About
-              </Button>
-
-              <Button
-                variant={rightDrawerOpen ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setRightDrawerOpen(!rightDrawerOpen)}
-                title="Toggle layer controls (L)"
-              >
+              <Button variant={exploded ? "default" : "outline"} size="sm" onClick={() => setExploded(!exploded)}>
                 <Layers className="h-4 w-4 mr-2" />
-                Layers
+                {exploded ? "Normal" : "Exploded"}
               </Button>
 
               <Button
-                variant={qualityPanelOpen ? "default" : "ghost"}
+                variant={annotations ? "default" : "outline"}
                 size="sm"
-                onClick={() => setQualityPanelOpen(!qualityPanelOpen)}
-                title="Quality settings"
+                onClick={() => setAnnotations(!annotations)}
               >
-                <Settings className="h-4 w-4 mr-2" />
-                Quality
+                Annotations
               </Button>
 
-              <Button
-                variant={sunControlsOpen ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setSunControlsOpen(!sunControlsOpen)}
-                title="Sun and environment controls"
-              >
-                <Sun className="h-4 w-4 mr-2" />
-                Sun
-              </Button>
-
-              <Button variant="ghost" size="sm" onClick={handleScreenshot} title="Take screenshot (S)">
+              <Button variant="outline" size="sm" onClick={handleScreenshot}>
                 <Camera className="h-4 w-4 mr-2" />
                 Screenshot
               </Button>
 
-              <Button variant="ghost" size="sm" onClick={handleTour} title="Start camera tour (T)">
-                <Play className="h-4 w-4 mr-2" />
-                Tour
-              </Button>
-
-              <Button
-                variant={cinematicMode ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setCinematicMode(!cinematicMode)}
-                title="Toggle cinematic mode (C)"
-              >
-                <Headphones className="h-4 w-4 mr-2" />
-                Cinematic
-              </Button>
-
-              <Button
-                variant={performanceHUD ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setPerformanceHUD(!performanceHUD)}
-                title="Toggle performance HUD"
-              >
-                <Activity className="h-4 w-4" />
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setHelpOverlayOpen(true)}
-                title="Show help and hotkeys (?)"
-              >
-                <HelpCircle className="h-4 w-4" />
+              <Button variant="outline" size="sm" onClick={() => setAboutModalOpen(true)}>
+                <Info className="h-4 w-4 mr-2" />
+                About
               </Button>
             </div>
           </div>
         </Card>
       </div>
 
-      {/* Bottom Controls */}
-      <div className="absolute bottom-4 left-4 z-50 flex gap-2">
-        <Button
-          variant={measureToolActive ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setMeasureToolActive(!measureToolActive)}
-          title="Measurement tool"
-        >
-          📏 Measure
-        </Button>
-
-        <Button
-          variant={clippingActive ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setClippingActive(!clippingActive)}
-          title="Section clipping (X/Y/Z)"
-        >
-          ✂️ Clip
-        </Button>
-      </div>
-
-      {/* Minimap */}
-      {minimap && (
-        <div className="absolute bottom-4 right-4 z-40">
-          <Minimap />
-        </div>
-      )}
-
-      {/* Modals and Panels */}
       <AboutModal open={aboutModalOpen} onOpenChange={setAboutModalOpen} />
-      <LayerDrawer open={rightDrawerOpen} onOpenChange={setRightDrawerOpen} />
-      <QualityPanel open={qualityPanelOpen} onOpenChange={setQualityPanelOpen} />
-      <SunControls open={sunControlsOpen} onOpenChange={setSunControlsOpen} />
-      <HelpOverlay open={helpOverlayOpen} onOpenChange={setHelpOverlayOpen} />
-
-      {/* Cinematic Panel */}
-      <CinematicPanel open={cinematicMode} onOpenChange={setCinematicMode} />
-
-      {/* Cinematic Overlays */}
-      <Overlays />
-
-      {/* Tools */}
-      {measureToolActive && <MeasureTool onClose={() => setMeasureToolActive(false)} />}
-      {clippingActive && <SectionClipping onClose={() => setClippingActive(false)} />}
-
-      {/* Toast notifications */}
-      <Toaster />
-    </>
+    </div>
   )
 }
